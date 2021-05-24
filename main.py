@@ -1,6 +1,6 @@
 import blynklib
 import random
-import adafruit_dht
+import Adafruit_DHT
 import board
 import os
 import sys
@@ -12,7 +12,7 @@ import time
 # test on Pi zero instead of Pi 4
 # if Pi zero has issues, use a for loop inside the while loop to impliment an average, while also still utilizing the sleep function
 # impliment error logging
-
+print("begin")
 
 #######################start up ######################
 
@@ -30,13 +30,14 @@ def startUp():
                 os.kill(pid,9)
     except:
         print("nothing")
-startUp()
+#startUp()
 
-BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
-blynk = blynklib.Blynk(BLYNK_AUTH)
+# BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
+# blynk = blynklib.Blynk(BLYNK_AUTH)
 
 DHT_PIN = 4
-dht_device = adafruit_dht.DHT22(board.D4)
+# dht_device = adafruit_dht.DHT22(board.D4)
+DHT_SENSOR = Adafruit_DHT.DHT22
 Celcius = 0
 temperature = 0
 humidity = 0
@@ -46,20 +47,20 @@ lowHumidity = False
 lowTemperature = False
 highTemperature = False
 
-###########functions#####################
-READ_PRINT_MSG = "[READ_VIRTUAL_PIN_EVENT] Pin: V{}"
-@blynk.handle_event('read V0')
-def read_virtual_pin_handler(pin):
-    
-    print(READ_PRINT_MSG.format(pin))
-    blynk.virtual_write(pin, temperature)
-    
-
-@blynk.handle_event('read V1')
-def read_virtual_pin_handler(pin):
-    
-    print(READ_PRINT_MSG.format(pin))
-    blynk.virtual_write(pin, humidity)
+# ###########functions#####################
+# READ_PRINT_MSG = "[READ_VIRTUAL_PIN_EVENT] Pin: V{}"
+# @blynk.handle_event('read V0')
+# def read_virtual_pin_handler(pin):
+#     
+#     print(READ_PRINT_MSG.format(pin))
+#     blynk.virtual_write(pin, temperature)
+#     
+# 
+# @blynk.handle_event('read V1')
+# def read_virtual_pin_handler(pin):
+#     
+#     print(READ_PRINT_MSG.format(pin))
+#     blynk.virtual_write(pin, humidity)
 
 # Retrieves temperature data and optionally pushes to supergraph on pin V2
 def getTemperature():
@@ -89,16 +90,19 @@ def warnHumidity(low, high):
     highError = "Humidity above " + str(high) + "% detected"
     global lowHumidity
     global highHumidity
-    if humidity > high and highHumidity == False:
-        blynk.notify(highError)
-        highHumidity = True
-    elif humidity < low and lowHumidity == False:
-        blynk.notify(lowError)
-        lowHumidity = True
-    elif humidity < high and humidity > low:
-        highHumidity = False
-        lowHumidity = False
-        
+    try:
+        if humidity > high and highHumidity == False:
+            blynk.notify(highError)
+            highHumidity = True
+        elif humidity < low and lowHumidity == False:
+            blynk.notify(lowError)
+            lowHumidity = True
+        elif humidity < high and humidity > low:
+            highHumidity = False
+            lowHumidity = False
+    except:
+        print("warnHumidity error")
+    
 def warnTemperature(low, high):
     lowError = "Temperature below " + str(low) + "F detected"
     highError = "Temperature above " + str(high) + "F detected"
@@ -118,15 +122,18 @@ def warnTemperature(low, high):
         print("TypeError in warnTemperature, check previous temperature value")
 
         
-
+print("before loop")
 while True:
-    blynk.run()  # runs blynk read/listen handlers, and establishes connection
-    temperature = getTemperature()
-    humidity = getHumidity()
+#     blynk.run()  # runs blynk read/listen handlers, and establishes connection
+    print("reading from sensor")
+    humidity, temperature = Adafruit_DHT.read_retry(DHT_SENSOR, DHT_PIN)
+    # temperature = getTemperature()
+    # humidity = getHumidity()
+    print("after reading")
     print("T",temperature, "H:",humidity)
-    warnHumidity(30,65)
-    warnTemperature(72,75)
-    time.sleep(2)
+    #warnHumidity(30,65)
+    #warnTemperature(72,75)
+    # time.sleep(2)
     
 
 
