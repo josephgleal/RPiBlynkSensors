@@ -3,5 +3,5 @@
 
 
 # DEBUGGING
-# ERROR: Both temperature and humidity from sensor returned as None consecutively
-# SOLUTION: Verify wiring and solders have connections. This is usually caused by loose connections
+ERROR: Both temperature and humidity from sensor returned as None consecutively
+SOLUTION: Verify wiring and solders have connections. This is usually caused by loose connections
