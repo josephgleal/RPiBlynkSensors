@@ -7,6 +7,7 @@ import sys
 import subprocess
 import time
 from picamera import PiCamera
+from datetime import datetime
 
 # TODO
 # error handling for when first reading fails
@@ -49,6 +50,7 @@ lowTemperature = False
 highTemperature = False
 
 limit = 0  # this will become one of the temp/humid range limiting variables later
+sensorName = "Greenhouse_1"
 
 ####################functions#####################
 
@@ -144,19 +146,33 @@ def warnTemperature(low, high):
     except TypeError:
         print("TypeError in warnTemperature, check previous temperature value")
 
+def namePicture():
+    global sensorName
+    name = sensorName + str(datetime.now())
+    return name
+
 def takePicture():
     camera = PiCamera()
-    try:
-        #camera.start_preview()
-        #time.sleep(1)
-        camera.capture('/home/pi/Desktop/image.jpg')
-        print('photo taken')
-    except:
-        print("camera error")
-    finally:
-        camera.stop_preview()
-        time.sleep(2)
-            
+#    #camera.start_preview()
+#    #time.sleep(1)
+    photoName = '/home/pi/Desktop/'+namePicture()+'.jpg'
+    camera.capture(photoName)
+    print('photo taken')
+    camera.close()
+    time.sleep(2)
+#     try:
+#         #camera.start_preview()
+#         #time.sleep(1)
+#         camera.capture('/home/pi/Desktop/'+namePicture()+'.jpg')
+#         print('photo taken')
+#     except:
+#         print("camera error")
+#     finally:
+#         camera.stop_preview()
+#         time.sleep(2)
+
+    
+    
 syncCounter = 0
 pictureCounter = 0
 ########################main########################
