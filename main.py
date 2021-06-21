@@ -8,12 +8,19 @@ import subprocess
 import time
 from picamera import PiCamera
 from datetime import datetime
+# from pydrive.auth import GoogleAuth
+# from pydrive.drive import GoogleDrive
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 
 # TODO
-# error handling for when first reading fails
+# error handling for when first reading fails:DONE
 # test on Pi zero instead of Pi 4
 # if Pi zero has issues, use a for loop inside the while loop to impliment an average, while also still utilizing the sleep function
 # impliment error logging
+# COPY function that handles pin 4. Impliment as true false instead of integer. Use with button to email photo
 
 
 #######################start up ######################
@@ -33,6 +40,20 @@ def startUp():
     except:
         print("nothing")
 startUp()
+
+# gauth = GoogleAuth()
+# gauth.LocalWebserverAuth()
+# drive = GoogleDrive(gauth)
+# file1 = drive.CreateFile({'title': 'Hello.txt'})
+# file1.SetContentString('Hello World')
+# file1.Upload()
+
+#EMAIL
+SMTP_SERVER = 'smtp.gmail.com'
+SMTP_PORT = 587
+GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
+GMAIL_PASSWORD = 
+
 
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
 blynk = blynklib.Blynk(BLYNK_AUTH)
@@ -159,6 +180,7 @@ def takePicture():
     camera.capture(photoName)
     print('photo taken')
     camera.close()
+    sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',photoName)
     time.sleep(2)
 #     try:
 #         #camera.start_preview()
@@ -171,7 +193,29 @@ def takePicture():
 #         camera.stop_preview()
 #         time.sleep(2)
 
+def sendEmail(recipient, subject, content, image):
+    global GMAIL_USERNAME
+    #Create Headers
+    emailData = MIMEMultipart()
+    emailData['Subject'] = subject
+    emailData['To'] = recipient
+    emailData['From'] = GMAIL_USERNAME
     
+    emailData.attach(MIMEText(content))
+    
+    imageData = MIMEImage(open(image, 'rb').read(), 'jpg')
+    imageData.add_header('Content-Disposition', 'attachement; filename="image.jpg"')
+    emailData.attach(imageData)
+    
+    session = smtplib.SMTP(SMTP_SERVER, SMTP_PORT)
+    session.ehlo()
+    session.starttls()
+    session.ehlo()
+    
+    session.login(GMAIL_USERNAME, GMAIL_PASSWORD)
+    
+    session.sendmail(GMAIL_USERNAME, recipient, emailData.as_string())
+    session.quit
     
 syncCounter = 0
 pictureCounter = 0
@@ -193,6 +237,7 @@ while True:
     # This block dictates how often a photo is taken
     if pictureCounter == 2:
         takePicture()
+        
         pictureCounter = 0
         
             
