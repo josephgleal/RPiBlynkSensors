@@ -71,6 +71,7 @@ lowTemperature = False
 highTemperature = False
 
 limit = 0  # this will become one of the temp/humid range limiting variables later
+pictureRequest = False
 sensorName = "Greenhouse_1"
 
 ####################functions#####################
@@ -101,6 +102,14 @@ def write_virtual_pin_handler(pin, value):
     print(int(value[0]))
     global limit
     limit = int(value[0])
+    
+@blynk.handle_event('write V5')    
+def write_virtual_pin_handler(pin, value):
+    #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
+    # can I put a mutex lock here?
+    print('pictureRequest button = ' + str(bool(value[0])))
+    global pictureRequest
+    pictureRequest = bool(value[0])
 
 # Retrieves temperature data and optionally pushes to supergraph on pin V2
 # hardware is prone to fail every few readings, in those cases tempurature is not changed and returned as it was before via the except blocks
@@ -233,16 +242,21 @@ while True:
     # this block fixes an issue where data set on the app was not being recieved on the hardware. Can be put into a function later
     if syncCounter == 2:
         blynk.virtual_sync(4)
+        blynk.virtual_sync(5)
         syncCounter = 0
     # This block dictates how often a photo is taken
-    if pictureCounter == 2:
-        takePicture()
-        
-        pictureCounter = 0
+    if pictureRequest == True:
+        try:
+            takePicture()
+            blynk.virtual_write(5,0)
+            pictureRequest = False
+        except:
+            print("error with takePicture()")
+        #pictureCounter = 0
         
             
         
         
     syncCounter += 1
-    pictureCounter += 1
+    #pictureCounter += 1
     
