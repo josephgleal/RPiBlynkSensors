@@ -8,8 +8,8 @@ import subprocess
 import time
 from picamera import PiCamera
 from datetime import datetime
-# from pydrive.auth import GoogleAuth
-# from pydrive.drive import GoogleDrive
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
@@ -41,9 +41,10 @@ def startUp():
         print("nothing")
 startUp()
 
-# gauth = GoogleAuth()
+#GOOGLE DRIVE
+gauth = GoogleAuth()
 # gauth.LocalWebserverAuth()
-# drive = GoogleDrive(gauth)
+drive = GoogleDrive(gauth)
 # file1 = drive.CreateFile({'title': 'Hello.txt'})
 # file1.SetContentString('Hello World')
 # file1.Upload()
@@ -54,10 +55,11 @@ SMTP_PORT = 587
 GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
 GMAIL_PASSWORD = 
 
-
+#BLYNK
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
 blynk = blynklib.Blynk(BLYNK_AUTH)
 
+#DHT22
 DHT_PIN = 4
 dht_device = adafruit_dht.DHT22(board.D4)
 Celcius = 0
@@ -70,7 +72,10 @@ lowHumidity = False
 lowTemperature = False
 highTemperature = False
 
+#TESTING
 limit = 0  # this will become one of the temp/humid range limiting variables later
+
+#CAMERA
 pictureRequest = False
 sensorName = "Greenhouse_1"
 
@@ -102,7 +107,8 @@ def write_virtual_pin_handler(pin, value):
     print(int(value[0]))
     global limit
     limit = int(value[0])
-    
+
+#Handles Picture Request Button on the Blynk app    
 @blynk.handle_event('write V5')    
 def write_virtual_pin_handler(pin, value):
     #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
@@ -189,8 +195,9 @@ def takePicture():
     camera.capture(photoName)
     print('photo taken')
     camera.close()
-    sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',photoName)
+    # sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',photoName)
     time.sleep(2)
+    return photoName #####TEST
 #     try:
 #         #camera.start_preview()
 #         #time.sleep(1)
@@ -247,16 +254,24 @@ while True:
     # This block dictates how often a photo is taken
     if pictureRequest == True:
         try:
-            takePicture()
-            blynk.virtual_write(5,0)
-            pictureRequest = False
+            filePath = takePicture() #####TEST
+            sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',filePath) #####TEST
+            blynk.virtual_write(5,0) # Turn button off in the app
+            pictureRequest = False # Reset Request status
         except:
             print("error with takePicture()")
         #pictureCounter = 0
+    if pictureCounter == 10:
+        global drive #####TEST
+        filePath = takePicture()
+        gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
+        # Read file and set it as the content of this instance.
+        gfile.SetContentFile('Blynk.png')
+        gfile.Upload() # Upload the file.
         
             
         
         
     syncCounter += 1
-    #pictureCounter += 1
+    pictureCounter += 1
     
