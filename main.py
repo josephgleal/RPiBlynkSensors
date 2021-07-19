@@ -53,7 +53,7 @@ drive = GoogleDrive(gauth)
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
-GMAIL_PASSWORD = 
+GMAIL_PASSWORD = #'[remove before pushing to GitHub]'
 
 #BLYNK
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
@@ -247,7 +247,7 @@ while True:
     warnTemperature(72,75)
     time.sleep(2)
     # this block fixes an issue where data set on the app was not being recieved on the hardware. Can be put into a function later
-    if syncCounter == 2:
+    if syncCounter == 6:
         blynk.virtual_sync(4)
         blynk.virtual_sync(5)
         syncCounter = 0
@@ -261,13 +261,14 @@ while True:
         except:
             print("error with takePicture()")
         #pictureCounter = 0
-    if pictureCounter == 10:
-        global drive #####TEST
+    if pictureCounter == 300: #Incriment by minutes later
+        drive #####TEST
         filePath = takePicture()
         gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
         # Read file and set it as the content of this instance.
-        gfile.SetContentFile('Blynk.png')
+        gfile.SetContentFile(filePath)
         gfile.Upload() # Upload the file.
+        pictureCounter = 0
         
             
         
