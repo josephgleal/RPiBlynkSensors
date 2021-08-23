@@ -14,6 +14,7 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+#import datetime
 
 # TODO
 # error handling for when first reading fails:DONE
@@ -52,8 +53,9 @@ drive = GoogleDrive(gauth)
 #EMAIL
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
+#PUT THIS IN ANOTHER FILE
 GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
-GMAIL_PASSWORD = #'[remove before pushing to GitHub]'
+GMAIL_PASSWORD = 'E$Wsensors'
 
 #BLYNK
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
@@ -104,12 +106,12 @@ WRITE_EVENT_PRINT_MSG = "[WRITE_VIRTUAL_PIN_EVENT] Pin: V{} Value: '{}'"
 def write_virtual_pin_handler(pin, value):
     #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
     # can I put a mutex lock here?
-    print(int(value[0]))
+    print(float(value[0]))
     global limit
-    limit = int(value[0])
+    limit = float(value[0])
 
 #Handles Picture Request Button on the Blynk app    
-@blynk.handle_event('write V5')    
+@blynk.handle_event('write V7')    
 def write_virtual_pin_handler(pin, value):
     #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
     # can I put a mutex lock here?
@@ -187,6 +189,7 @@ def namePicture():
     name = sensorName + str(datetime.now())
     return name
 
+# Takes photo and returns the filepath
 def takePicture():
     camera = PiCamera()
 #    #camera.start_preview()
@@ -232,9 +235,19 @@ def sendEmail(recipient, subject, content, image):
     
     session.sendmail(GMAIL_USERNAME, recipient, emailData.as_string())
     session.quit
-    
+
+#Gets the amount of time passed. timedelta object only has seconds and microseconds
+def getTimePassed(now, start):
+    return now - start
+
+def syncPins():
+    blynk.virtual_sync(4)
+    blynk.virtual_sync(5)
+    print("sync complete")
 syncCounter = 0
 pictureCounter = 0
+startTimeDrive = datetime.now()
+startTimeSync = datetime.now()
 ########################main########################
 
 while True:
@@ -242,37 +255,49 @@ while True:
     temperature = getTemperature()
     humidity = getHumidity()
     print("T",temperature, "H:",humidity)
-    print("limit", limit)
+    print("limit", limit, "Picture Request:", pictureRequest)
     warnHumidity(30,65)
     warnTemperature(72,75)
     time.sleep(2)
+    
     # this block fixes an issue where data set on the app was not being recieved on the hardware. Can be put into a function later
-    if syncCounter == 6:
-        blynk.virtual_sync(4)
-        blynk.virtual_sync(5)
-        syncCounter = 0
+    if getTimePassed(datetime.now(), startTimeSync).seconds > 5:
+        syncPins()
+        startTimeSync = datetime.now()
+        
     # This block dictates how often a photo is taken
     if pictureRequest == True:
         try:
             filePath = takePicture() #####TEST
             sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',filePath) #####TEST
-            blynk.virtual_write(5,0) # Turn button off in the app
+            blynk.virtual_write(7,0) # Turn button off in the app
             pictureRequest = False # Reset Request status
         except:
             print("error with takePicture()")
         #pictureCounter = 0
-    if pictureCounter == 300: #Incriment by minutes later
-        drive #####TEST
+     
+    deltaTime = getTimePassed(datetime.now(), startTimeDrive)
+    if deltaTime.seconds > 3*3600: #pictureCounter == 2: #Incriment by minutes later
+#         try:
+#             drive #####TEST idk if I need this line
+#             filePath = takePicture()
+#             gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
+#             # Read file and set it as the content of this instance.
+#             gfile.SetContentFile(filePath)
+#             gfile.Upload() # Upload the file.
+#             pictureCounter = 0
+#             startTimeDrive = datetime.now()
+#         except:
+#             print("Error uploading to drive in main loop")
+        ##################################
+        drive #####TEST idk if I need this line
         filePath = takePicture()
         gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
         # Read file and set it as the content of this instance.
         gfile.SetContentFile(filePath)
         gfile.Upload() # Upload the file.
         pictureCounter = 0
-        
+        startTimeDrive = datetime.now()
+        ##################################
             
-        
-        
-    syncCounter += 1
-    pictureCounter += 1
     
