@@ -8,12 +8,13 @@ import subprocess
 import time
 from picamera import PiCamera
 from datetime import datetime
-# from pydrive.auth import GoogleAuth
-# from pydrive.drive import GoogleDrive
+from pydrive.auth import GoogleAuth
+from pydrive.drive import GoogleDrive
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.image import MIMEImage
+#import datetime
 
 # TODO
 # error handling for when first reading fails:DONE
@@ -41,9 +42,10 @@ def startUp():
         print("nothing")
 startUp()
 
-# gauth = GoogleAuth()
+#GOOGLE DRIVE
+gauth = GoogleAuth()
 # gauth.LocalWebserverAuth()
-# drive = GoogleDrive(gauth)
+drive = GoogleDrive(gauth)
 # file1 = drive.CreateFile({'title': 'Hello.txt'})
 # file1.SetContentString('Hello World')
 # file1.Upload()
@@ -51,13 +53,15 @@ startUp()
 #EMAIL
 SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
+#PUT THIS IN ANOTHER FILE
 GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
-GMAIL_PASSWORD = 
+GMAIL_PASSWORD = 'E$Wsensors'
 
-
+#BLYNK
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
 blynk = blynklib.Blynk(BLYNK_AUTH)
 
+#DHT22
 DHT_PIN = 4
 dht_device = adafruit_dht.DHT22(board.D4)
 Celcius = 0
@@ -70,7 +74,10 @@ lowHumidity = False
 lowTemperature = False
 highTemperature = False
 
+#TESTING
 limit = 0  # this will become one of the temp/humid range limiting variables later
+
+#CAMERA
 pictureRequest = False
 sensorName = "Greenhouse_1"
 
@@ -99,11 +106,12 @@ WRITE_EVENT_PRINT_MSG = "[WRITE_VIRTUAL_PIN_EVENT] Pin: V{} Value: '{}'"
 def write_virtual_pin_handler(pin, value):
     #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
     # can I put a mutex lock here?
-    print(int(value[0]))
+    print(float(value[0]))
     global limit
-    limit = int(value[0])
-    
-@blynk.handle_event('write V5')    
+    limit = float(value[0])
+
+#Handles Picture Request Button on the Blynk app    
+@blynk.handle_event('write V7')    
 def write_virtual_pin_handler(pin, value):
     #print(WRITE_EVENT_PRINT_MSG.format(pin, value))
     # can I put a mutex lock here?
@@ -181,6 +189,7 @@ def namePicture():
     name = sensorName + str(datetime.now())
     return name
 
+# Takes photo and returns the filepath
 def takePicture():
     camera = PiCamera()
 #    #camera.start_preview()
@@ -189,8 +198,9 @@ def takePicture():
     camera.capture(photoName)
     print('photo taken')
     camera.close()
-    sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',photoName)
+    # sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',photoName)
     time.sleep(2)
+    return photoName #####TEST
 #     try:
 #         #camera.start_preview()
 #         #time.sleep(1)
@@ -225,9 +235,19 @@ def sendEmail(recipient, subject, content, image):
     
     session.sendmail(GMAIL_USERNAME, recipient, emailData.as_string())
     session.quit
-    
+
+#Gets the amount of time passed. timedelta object only has seconds and microseconds
+def getTimePassed(now, start):
+    return now - start
+
+def syncPins():
+    blynk.virtual_sync(4)
+    blynk.virtual_sync(5)
+    print("sync complete")
 syncCounter = 0
 pictureCounter = 0
+startTimeDrive = datetime.now()
+startTimeSync = datetime.now()
 ########################main########################
 
 while True:
@@ -235,28 +255,49 @@ while True:
     temperature = getTemperature()
     humidity = getHumidity()
     print("T",temperature, "H:",humidity)
-    print("limit", limit)
+    print("limit", limit, "Picture Request:", pictureRequest)
     warnHumidity(30,65)
     warnTemperature(72,75)
     time.sleep(2)
+    
     # this block fixes an issue where data set on the app was not being recieved on the hardware. Can be put into a function later
-    if syncCounter == 2:
-        blynk.virtual_sync(4)
-        blynk.virtual_sync(5)
-        syncCounter = 0
+    if getTimePassed(datetime.now(), startTimeSync).seconds > 5:
+        syncPins()
+        startTimeSync = datetime.now()
+        
     # This block dictates how often a photo is taken
     if pictureRequest == True:
         try:
-            takePicture()
-            blynk.virtual_write(5,0)
-            pictureRequest = False
+            filePath = takePicture() #####TEST
+            sendEmail('tamugreenhousesensors@gmail.com', 'Test', 'test',filePath) #####TEST
+            blynk.virtual_write(7,0) # Turn button off in the app
+            pictureRequest = False # Reset Request status
         except:
             print("error with takePicture()")
         #pictureCounter = 0
-        
+     
+    deltaTime = getTimePassed(datetime.now(), startTimeDrive)
+    if deltaTime.seconds > 3*3600: #pictureCounter == 2: #Incriment by minutes later
+#         try:
+#             drive #####TEST idk if I need this line
+#             filePath = takePicture()
+#             gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
+#             # Read file and set it as the content of this instance.
+#             gfile.SetContentFile(filePath)
+#             gfile.Upload() # Upload the file.
+#             pictureCounter = 0
+#             startTimeDrive = datetime.now()
+#         except:
+#             print("Error uploading to drive in main loop")
+        ##################################
+        drive #####TEST idk if I need this line
+        filePath = takePicture()
+        gfile = drive.CreateFile({'parents': [{'id': '1I5V5Aa4KkXx-AAa7rjS-SP7YtrefN3XD'}]})
+        # Read file and set it as the content of this instance.
+        gfile.SetContentFile(filePath)
+        gfile.Upload() # Upload the file.
+        pictureCounter = 0
+        startTimeDrive = datetime.now()
+        ##################################
             
-        
-        
-    syncCounter += 1
-    #pictureCounter += 1
     
