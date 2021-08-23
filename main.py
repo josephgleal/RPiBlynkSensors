@@ -55,7 +55,7 @@ SMTP_SERVER = 'smtp.gmail.com'
 SMTP_PORT = 587
 #PUT THIS IN ANOTHER FILE
 GMAIL_USERNAME = 'tamugreenhousesensors@gmail.com'
-GMAIL_PASSWORD = 'E$Wsensors'
+GMAIL_PASSWORD = 
 
 #BLYNK
 BLYNK_AUTH = 'k23bFgoarBaCRdw7BxUTivijuj7Gatk0' #use your auth token here
